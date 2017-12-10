@@ -31,7 +31,7 @@ class GCMDeviceManager(models.Manager):
 
 
 class GCMDeviceQuerySet(models.query.QuerySet):
-	def send_message(self, message, **kwargs):
+	def send_message(self, message, use_old_key=False, **kwargs):
 		if self:
 			from .gcm import gcm_send_bulk_message
 
@@ -40,7 +40,7 @@ class GCMDeviceQuerySet(models.query.QuerySet):
 				data["message"] = message
 
 			reg_ids = list(self.filter(active=True).values_list('registration_id', flat=True))
-			return gcm_send_bulk_message(registration_ids=reg_ids, data=data, **kwargs)
+			return gcm_send_bulk_message(registration_ids=reg_ids, data=data, use_old_key=use_old_key, **kwargs)
 
 
 class GCMDevice(Device):
@@ -56,12 +56,12 @@ class GCMDevice(Device):
 	class Meta:
 		verbose_name = _("GCM device")
 
-	def send_message(self, message, **kwargs):
+	def send_message(self, message, use_old_key=False, **kwargs):
 		from .gcm import gcm_send_message
 		data = kwargs.pop("extra", {})
 		if message is not None:
 			data["message"] = message
-		return gcm_send_message(registration_id=self.registration_id, data=data, **kwargs)
+		return gcm_send_message(registration_id=self.registration_id, data=data, use_old_key=use_old_key, **kwargs)
 
 
 class APNSDeviceManager(models.Manager):
@@ -70,11 +70,11 @@ class APNSDeviceManager(models.Manager):
 
 
 class APNSDeviceQuerySet(models.query.QuerySet):
-	def send_message(self, message, **kwargs):
+	def send_message(self, message, use_old_cert, **kwargs):
 		if self:
 			from .apns import apns_send_bulk_message
 			reg_ids = list(self.filter(active=True).values_list('registration_id', flat=True))
-			return apns_send_bulk_message(registration_ids=reg_ids, alert=message, **kwargs)
+			return apns_send_bulk_message(registration_ids=reg_ids, alert=message, use_old_cert=use_old_cert, **kwargs)
 
 
 class APNSDevice(Device):
@@ -87,10 +87,10 @@ class APNSDevice(Device):
 	class Meta:
 		verbose_name = _("APNS device")
 
-	def send_message(self, message, **kwargs):
+	def send_message(self, message, use_old_cert=False, **kwargs):
 		from .apns import apns_send_message
 
-		return apns_send_message(registration_id=self.registration_id, alert=message, **kwargs)
+		return apns_send_message(registration_id=self.registration_id, alert=message, use_old_cert=use_old_cert, **kwargs)
 
 
 # This is an APNS-only function right now, but maybe GCM will implement it
